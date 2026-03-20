@@ -116,7 +116,16 @@ class QuizViewSet(ModelViewSet):
     @action(detail=True, methods=["get"], url_path="leaderboard")
     def leaderboard(self, request, pk=None):
         from apps.attempts.models import QuizAttempt
+        from django.core.cache import cache
+
         quiz = self.get_object()
+        cache_key = f"leaderboard_quiz_{quiz.id}"
+
+        # Try cache first
+        cached = cache.get(cache_key)
+        if cached:
+            return Response({"success": True, "data": cached, "cached": True})
+
         top_attempts = (
             QuizAttempt.objects.filter(
                 quiz=quiz,
@@ -144,7 +153,11 @@ class QuizViewSet(ModelViewSet):
             }
             for index, attempt in enumerate(top_attempts)
         ]
-        return Response({"success": True, "data": data})
+
+        # Cache for 5 minutes
+        cache.set(cache_key, data, timeout=300)
+
+        return Response({"success": True, "data": data, "cached": False})
 
 
 class SharedQuizView(generics.RetrieveAPIView):

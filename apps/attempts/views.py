@@ -138,6 +138,7 @@ class AttemptDetailView(generics.RetrieveAPIView):
 def _update_user_analytics(attempt):
     from apps.analytics.models import UserAnalytics
     from django.db.models import Avg
+    from django.core.cache import cache
 
     analytics, _ = UserAnalytics.objects.get_or_create(user=attempt.user)
     all_attempts = QuizAttempt.objects.filter(
@@ -149,6 +150,10 @@ def _update_user_analytics(attempt):
     analytics.total_questions_answered += attempt.answers.count()
     analytics.save()
 
+    # Invalidate leaderboard cache for this quiz when new score submitted
+    cache_key = f"leaderboard_quiz_{attempt.quiz_id}"
+    cache.delete(cache_key)
+    
 class AttemptQuestionsView(APIView):
     """
     Returns all questions with choice IDs for an active attempt.
