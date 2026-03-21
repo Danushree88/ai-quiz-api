@@ -23,6 +23,64 @@ A production-grade REST API for a quiz application built with Django and Django 
 
 ---
 
+## ⚡ Quick Start — How to Use the API
+
+> All endpoints except **Register**, **Login**, and **Shared Quiz** require authentication.  
+> Without a valid token, every protected endpoint returns `401 Unauthorized`.
+
+### Step 1 — Register
+Go to `POST /api/v1/auth/register/` and create an account:
+```json
+{
+  "email": "you@example.com",
+  "username": "yourname",
+  "password": "yourpassword",
+  "password_confirm": "yourpassword"
+}
+```
+The response includes an `access` token and a `refresh` token.
+
+### Step 2 — Authorize in Swagger
+1. Copy the `access` token from the register (or login) response
+2. Click the **Authorize 🔒** button at the top right of the Swagger page
+3. In the field, type: `Bearer <paste_your_access_token_here>`
+4. Click **Authorize** then **Close**
+
+> Every request from Swagger will now include your token automatically.  
+> **Access tokens expire after 24 hours** — use `POST /auth/token/refresh/` with your refresh token to get a new one, or simply login again.
+
+### Step 3 — Create a Quiz
+`POST /api/v1/quizzes/` with:
+```json
+{
+  "topic": "Python programming",
+  "difficulty": "easy",
+  "question_count": 3
+}
+```
+AI generates questions in the background. You get back a `quiz_id` immediately.
+
+### Step 4 — Check Status
+`GET /api/v1/quizzes/{id}/status/` — poll until `status` is `ready`.
+
+### Step 5 — Attempt the Quiz
+```
+POST /api/v1/attempts/start/       → get attempt_id
+GET  /api/v1/attempts/{id}/questions/  → see questions + choice IDs
+POST /api/v1/attempts/{id}/answer/ → submit each answer
+POST /api/v1/attempts/{id}/submit/ → get your score
+```
+
+### Step 6 — View Results
+```
+GET /api/v1/quizzes/{id}/leaderboard/  → top 10 for this quiz
+GET /api/v1/analytics/me/              → your personal stats
+GET /api/v1/history/                   → your past attempts
+GET /api/v1/leaderboard/               → global top 10 users
+```
+
+---
+
 ## Local Setup
 
 ### Prerequisites
@@ -202,7 +260,7 @@ All endpoints versioned under `/api/v1/`. Full interactive docs at `/api/docs/`.
 | GET | `/quizzes/{id}/status/` | Required | Poll generation status |
 | GET | `/quizzes/{id}/questions/` | Required | Questions without correct answers |
 | GET | `/quizzes/{id}/leaderboard/` | Required | Top 10 scores for this quiz (cached) |
-| GET | `/quizzes/shared/{token}/` | None | Public access via share token |
+| GET | `/quizzes/shared/{token}/` | **None** | Public access via share token |
 
 ### Attempts
 | Method | Endpoint | Auth | Description |
